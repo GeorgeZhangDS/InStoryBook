@@ -18,7 +18,6 @@ class Settings(BaseSettings):
     
     # CORS config - allowed frontend origins
     CORS_ORIGINS: List[str] = [
-        "http://localhost:3000",
         "http://localhost:5173",
     ]
     

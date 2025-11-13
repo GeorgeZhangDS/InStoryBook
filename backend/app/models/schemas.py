@@ -87,6 +87,13 @@ class WebSocketMessage(BaseModel):
     data: Dict[str, Any]
 
 
+class StoryGenerateResponse(BaseModel):
+    """Response for story generation request"""
+    session_id: str
+    message: str
+    status: str
+
+
 class StoryResponse(BaseModel):
     """Story generation response"""
     session_id: str

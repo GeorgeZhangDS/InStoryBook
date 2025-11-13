@@ -1,0 +1,31 @@
+version: '3.8'
+
+# ============================================
+# Local Development Environment Configuration
+# ============================================
+# Note: This file is NOT needed for production deployment to Railway/Vercel
+# - Railway automatically builds and deploys the backend
+# - Vercel automatically builds and deploys the frontend
+# - Upstash provides managed Redis service
+
+services:
+  # Redis service - Only for local development
+  # Production uses Upstash Redis (managed service)
+  redis:
+    image: redis:7-alpine
+    container_name: instorybook-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  redis-data:
+    driver: local
+
