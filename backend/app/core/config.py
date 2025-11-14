@@ -8,58 +8,54 @@ from functools import lru_cache
 
 class Settings(BaseSettings):
     """Application settings"""
-    
+
     # App basic config
     APP_NAME: str = "InStoryBook"
     DEBUG: bool = False
-    
+
     # API config
     API_V1_PREFIX: str = "/api/v1"
-    
-    # CORS config - allowed frontend origins
+
+    # Redis
+    REDIS_URL: str = "redis://localhost:6379/0"
+
+    # CORS
     CORS_ORIGINS: List[str] = [
         "http://localhost:5173",
     ]
-    
-    # AI Provider config - support multiple providers via MCP
-    # Options: "openai", "anthropic", "google"
-    AI_PROVIDER: str = "openai"
-    
-    # OpenAI config (read from env: OPENAI_API_KEY)
-    OPENAI_API_KEY: str = ""
+
+    # TEXT GENERATION CONFIG
+    AI_PROVIDER: str = "nova"
+    AI_FALLBACK_PROVIDER: str = "openai"
+
+    # Nova (Amazon Bedrock) configs
+    AWS_ACCESS_KEY: Optional[str] = None
+    AWS_SECRET_KEY: Optional[str] = None
+    AWS_REGION: str = "us-east-1"
+    NOVA_MODEL: str = "us.amazon.nova-micro-v1:0"
+
+    # OpenAI configs
+    OPENAI_API_KEY: Optional[str] = None
     OPENAI_MODEL: str = "gpt-4o-mini"
-    
-    # Anthropic config (read from env: ANTHROPIC_API_KEY)
-    ANTHROPIC_API_KEY: Optional[str] = None
-    ANTHROPIC_MODEL: str = "claude-3-haiku-20240307"
-    
-    # Google Gemini config (read from env: GOOGLE_API_KEY)
-    GOOGLE_API_KEY: Optional[str] = None
-    GOOGLE_MODEL: str = "gemini-1.5-flash"
-    
-    # Image generation config - support multiple providers via MCP
-    # Options: "stability", "flux"
+
+    # IMAGE GENERATION CONFIG
     IMAGE_PROVIDER: str = "stability"
-    
-    # Stability AI config (read from env: STABILITY_API_KEY)
+    IMAGE_FALLBACK_PROVIDER: str = "openai"
+
+    # Stability AI configs
     STABILITY_API_KEY: Optional[str] = None
-    STABILITY_MODEL: str = "sd-xl-lightning"  # SDXL Lightning
-    
-    # FLUX config (read from env: FLUX_API_KEY or STABILITY_API_KEY)
-    FLUX_API_KEY: Optional[str] = None
-    FLUX_MODEL: str = "flux-1-schnell"  # FLUX.1 Schnell
-    
+    STABILITY_MODEL: str = "sd-xl-lightning"
+
+    # OpenAI Image configs
+    OPENAI_IMAGE_MODEL: str = "gpt-image-1-mini"
+
     class Config:
         env_file = ".env"
         case_sensitive = True
-        
-        # All API keys must come from environment variables
-        # Never hardcode them in code
 
 
 @lru_cache()
 def get_settings() -> Settings:
-    """Get settings singleton instance"""
     return Settings()
 
 

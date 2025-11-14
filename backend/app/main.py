@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.core.config import settings
+from app.core.redis import get_redis
 from app.api import router as api_router
 
 
@@ -15,14 +16,17 @@ async def lifespan(app: FastAPI):
     
     # Startup
     print(f"Starting {settings.APP_NAME}...")
-    # TODO: Initialize Redis connection pool
+    redis_client = get_redis()
+    await redis_client.connect()
+    print("Redis connected")
     # TODO: Initialize Celery app
     
     yield
     
     # Shutdown
     print(f"Shutting down {settings.APP_NAME}...")
-    # TODO: Close Redis connections
+    await redis_client.disconnect()
+    print("Redis disconnected")
     # TODO: Clean up Celery workers
 
 app = FastAPI(
