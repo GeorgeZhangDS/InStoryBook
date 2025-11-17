@@ -91,7 +91,7 @@ class StoryGenerateResponse(BaseModel):
     """Response for story generation request"""
     session_id: str
     message: str
-    status: str
+    status: str  # "pending", "running", "completed", "failed"
 
 
 class StoryResponse(BaseModel):

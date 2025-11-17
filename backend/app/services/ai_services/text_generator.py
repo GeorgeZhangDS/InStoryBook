@@ -118,13 +118,13 @@ class FallbackGenerator(TextGenerator):
     ) -> str:
         try:
             logger.info(f"Trying primary: {self.primary.__class__.__name__}")
-            result = await self.primary.generate(prompt, temperature, max_tokens)
+            result = await self.primary.generate(prompt, temperature=temperature, max_tokens=max_tokens)
             if result and result.strip():
                 return result
             raise ValueError("Empty response from primary")
         except Exception as e:
             logger.warning(f"Primary failed: {e}, using fallback")
-            return await self.fallback.generate(prompt, temperature, max_tokens)
+            return await self.fallback.generate(prompt, temperature=temperature, max_tokens=max_tokens)
 
 
 def get_text_generator() -> TextGenerator:

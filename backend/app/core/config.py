@@ -44,7 +44,7 @@ class Settings(BaseSettings):
 
     # Stability AI configs
     STABILITY_API_KEY: Optional[str] = None
-    STABILITY_MODEL: str = "sd-xl-lightning"
+    STABILITY_MODEL: str = "stable-diffusion-xl-1024-v1-0"
 
     # OpenAI Image configs
     OPENAI_IMAGE_MODEL: str = "gpt-image-1-mini"
