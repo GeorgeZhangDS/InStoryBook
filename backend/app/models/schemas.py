@@ -41,8 +41,6 @@ class StoryStyle(str, Enum):
 class StoryRequest(BaseModel):
     """Story generation request - user only inputs theme"""
     theme: str = Field(..., description="Story theme", min_length=30, max_length=2000)
-    style: Optional[StoryStyle] = Field(None, description="Story style - auto-detected if not provided")
-    chapter_count: Optional[int] = Field(4, description="Number of chapters", ge=1, le=8)
 
 
 class ChapterContent(BaseModel):

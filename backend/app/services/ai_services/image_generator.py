@@ -2,7 +2,6 @@
 Image generation service with fallback
 Primary: GPT-image-1-mini, Fallback: Stability AI
 """
-from typing import Optional
 import httpx
 import logging
 import base64
@@ -16,7 +15,7 @@ logger = logging.getLogger(__name__)
 class ImageGenerator:
     """Base image generator class"""
 
-    async def generate(self, prompt: str, style: Optional[str] = None) -> str:
+    async def generate(self, prompt: str) -> str:
         """Generate image and return base64 data URI"""
         raise NotImplementedError
 
@@ -29,13 +28,11 @@ class StabilityGenerator(ImageGenerator):
         self.model = settings.STABILITY_MODEL
         self.url = "https://api.stability.ai/v2beta/stable-image/generate/core"
 
-    def _build_prompt(self, prompt: str, style: Optional[str] = None) -> str:
-        if style:
-            return f"{prompt}, style: {style}, children's book illustration"
+    def _build_prompt(self, prompt: str) -> str:
         return f"{prompt}, children's book illustration"
 
-    async def generate(self, prompt: str, style: Optional[str] = None) -> str:
-        full_prompt = self._build_prompt(prompt, style)
+    async def generate(self, prompt: str) -> str:
+        full_prompt = self._build_prompt(prompt)
 
         async with httpx.AsyncClient(timeout=60.0) as client:
             # Stability AI v2beta core API requires multipart/form-data
@@ -75,13 +72,11 @@ class OpenAIImageGenerator(ImageGenerator):
         self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
         self.model = settings.OPENAI_IMAGE_MODEL
 
-    def _build_prompt(self, prompt: str, style: Optional[str] = None) -> str:
-        if style:
-            return f"{prompt}, style: {style}, children's book illustration"
+    def _build_prompt(self, prompt: str) -> str:
         return f"{prompt}, children's book illustration"
 
-    async def generate(self, prompt: str, style: Optional[str] = None) -> str:
-        full_prompt = self._build_prompt(prompt, style)
+    async def generate(self, prompt: str) -> str:
+        full_prompt = self._build_prompt(prompt)
 
         # Use the configured model (gpt-image-1-mini)
         # Get URL first, then download and convert to base64
@@ -127,16 +122,16 @@ class FallbackImageGenerator(ImageGenerator):
         self.primary = primary
         self.fallback = fallback
 
-    async def generate(self, prompt: str, style: Optional[str] = None) -> str:
+    async def generate(self, prompt: str) -> str:
         try:
             logger.info(f"Trying primary: {self.primary.__class__.__name__}")
-            result = await self.primary.generate(prompt, style=style)
+            result = await self.primary.generate(prompt)
             if result and result.startswith("data:image/"):
                 return result
             raise ValueError("Invalid response from primary")
         except Exception as e:
             logger.warning(f"Primary failed: {e}, using fallback")
-            return await self.fallback.generate(prompt, style=style)
+            return await self.fallback.generate(prompt)
 
 
 def get_image_generator() -> ImageGenerator:

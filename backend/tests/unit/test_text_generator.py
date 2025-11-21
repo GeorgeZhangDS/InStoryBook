@@ -3,7 +3,7 @@ Unit tests for text generation service
 """
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 from app.services.ai_services.text_generator import (
     TextGenerator,
@@ -20,11 +20,10 @@ class TestTextGenerator:
 
     def test_text_generator_abstract(self):
         """Test that TextGenerator is abstract"""
-        generator = TextGenerator()
-        with pytest.raises(NotImplementedError):
-            # This will raise NotImplementedError
-            import asyncio
-            asyncio.run(generator.generate("test prompt"))
+        from abc import ABC
+        assert issubclass(TextGenerator, ABC)
+        with pytest.raises(TypeError):
+            generator = TextGenerator()
 
 
 class TestNovaGenerator:
@@ -44,6 +43,8 @@ class TestNovaGenerator:
         
         assert result == "Generated story text"
         mock_client.ainvoke.assert_called_once()
+        call_args = mock_client.ainvoke.call_args
+        assert isinstance(call_args[0][0], list)
 
     @pytest.mark.asyncio
     @patch('app.services.ai_services.text_generator.ChatBedrockConverse')
@@ -64,6 +65,7 @@ class TestNovaGenerator:
         call_args = mock_client.ainvoke.call_args
         assert call_args[1]["temperature"] == 0.9
         assert call_args[1]["max_tokens"] == 500
+        assert isinstance(call_args[0][0], list)
 
     @pytest.mark.asyncio
     @patch('app.services.ai_services.text_generator.ChatBedrockConverse')
@@ -93,6 +95,24 @@ class TestNovaGenerator:
         assert "Part 2" in result
         assert "Part 3" in result
 
+    @pytest.mark.asyncio
+    @patch('app.services.ai_services.text_generator.ChatBedrockConverse')
+    async def test_nova_with_response_format(self, mock_chat_bedrock):
+        """Test Nova with response_format uses system message"""
+        mock_response = AIMessage(content='{"result": "test"}')
+        mock_client = AsyncMock()
+        mock_client.ainvoke = AsyncMock(return_value=mock_response)
+        mock_chat_bedrock.return_value = mock_client
+        
+        generator = NovaGenerator()
+        await generator.generate("test", response_format={"type": "json_object"})
+        
+        call_args = mock_client.ainvoke.call_args
+        messages = call_args[0][0]
+        assert len(messages) == 2
+        assert isinstance(messages[0], SystemMessage)
+        assert isinstance(messages[1], HumanMessage)
+
 
 class TestOpenAIGenerator:
     """Test OpenAIGenerator class"""
@@ -111,6 +131,8 @@ class TestOpenAIGenerator:
         
         assert result == "Generated story text"
         mock_client.ainvoke.assert_called_once()
+        call_args = mock_client.ainvoke.call_args
+        assert isinstance(call_args[0][0], list)
 
     @pytest.mark.asyncio
     @patch('app.services.ai_services.text_generator.ChatOpenAI')
@@ -131,6 +153,7 @@ class TestOpenAIGenerator:
         call_args = mock_client.ainvoke.call_args
         assert call_args[1]["temperature"] == 0.8
         assert call_args[1]["max_tokens"] == 1000
+        assert isinstance(call_args[0][0], list)
 
     @pytest.mark.asyncio
     @patch('app.services.ai_services.text_generator.ChatOpenAI')
@@ -148,6 +171,21 @@ class TestOpenAIGenerator:
         result = await generator.generate("test")
         assert "First part" in result
         assert "Second part" in result
+
+    @pytest.mark.asyncio
+    @patch('app.services.ai_services.text_generator.ChatOpenAI')
+    async def test_openai_with_response_format(self, mock_chat_openai):
+        """Test OpenAI with response_format parameter"""
+        mock_response = AIMessage(content='{"result": "test"}')
+        mock_client = AsyncMock()
+        mock_client.ainvoke = AsyncMock(return_value=mock_response)
+        mock_chat_openai.return_value = mock_client
+        
+        generator = OpenAIGenerator()
+        await generator.generate("test", response_format={"type": "json_object"})
+        
+        call_args = mock_client.ainvoke.call_args
+        assert call_args[1]["response_format"] == {"type": "json_object"}
 
 
 class TestFallbackGenerator:
@@ -181,8 +219,8 @@ class TestFallbackGenerator:
         result = await generator.generate("test prompt")
         
         assert result == "Fallback result"
-        primary.generate.assert_called_once()
-        fallback.generate.assert_called_once()
+        assert primary.generate.call_count == 1
+        assert fallback.generate.call_count >= 1
 
     @pytest.mark.asyncio
     async def test_fallback_primary_exception(self):
@@ -212,7 +250,76 @@ class TestFallbackGenerator:
         generator = FallbackGenerator(primary, fallback)
         await generator.generate("test", temperature=0.9, max_tokens=500)
         
-        fallback.generate.assert_called_once_with("test", temperature=0.9, max_tokens=500)
+        fallback_calls = fallback.generate.call_args_list
+        assert len(fallback_calls) > 0
+        call = fallback_calls[0]
+        args = call[0]
+        assert args[0] == "test"
+        assert args[1] == 0.9
+        assert args[2] == 500
+
+    @pytest.mark.asyncio
+    async def test_fallback_with_validation(self):
+        """Test fallback with JSON validation"""
+        primary = MagicMock(spec=TextGenerator)
+        fallback = MagicMock(spec=TextGenerator)
+        
+        def validate_json(text):
+            import json
+            data = json.loads(text)
+            if "needs_info" not in data:
+                raise ValueError("Missing needs_info")
+        
+        primary.generate = AsyncMock(return_value='{"needs_info": false}')
+        fallback.generate = AsyncMock(return_value='{"needs_info": true}')
+        
+        generator = FallbackGenerator(primary, fallback)
+        result = await generator.generate("test", validate_json=validate_json)
+        
+        assert result == '{"needs_info": false}'
+        primary.generate.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_fallback_validation_failure_retry(self):
+        """Test fallback retries when validation fails"""
+        primary = MagicMock(spec=TextGenerator)
+        fallback = MagicMock(spec=TextGenerator)
+        
+        def validate_json(text):
+            import json
+            data = json.loads(text)
+            if "needs_info" not in data:
+                raise ValueError("Missing needs_info")
+        
+        primary.generate = AsyncMock(return_value='{"invalid": true}')
+        fallback.generate = AsyncMock(side_effect=[
+            '{"invalid": true}',
+            '{"invalid": true}',
+            '{"needs_info": true}'
+        ])
+        
+        generator = FallbackGenerator(primary, fallback)
+        result = await generator.generate("test", validate_json=validate_json, max_retries=3)
+        
+        assert result == '{"needs_info": true}'
+        assert fallback.generate.call_count == 3
+
+    @pytest.mark.asyncio
+    async def test_fallback_returns_empty_json_on_failure(self):
+        """Test fallback returns empty JSON when all attempts fail"""
+        primary = MagicMock(spec=TextGenerator)
+        fallback = MagicMock(spec=TextGenerator)
+        
+        def validate_json(text):
+            raise ValueError("Always fails")
+        
+        primary.generate = AsyncMock(return_value='{"invalid": true}')
+        fallback.generate = AsyncMock(return_value='{"invalid": true}')
+        
+        generator = FallbackGenerator(primary, fallback)
+        result = await generator.generate("test", validate_json=validate_json, response_format={"type": "json_object"})
+        
+        assert result == "{}"
 
 
 class TestGetTextGenerator:
