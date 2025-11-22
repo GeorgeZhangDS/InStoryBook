@@ -24,12 +24,16 @@ async def finalizer_agent(state: StoryState) -> Dict[str, Any]:
     writers_done = len(completed_writers) == 4
     images_done = len(completed_image_gens) == 4
     
-    if writers_done and not images_done:
-        return await _process_text_optimization(state)
+    text_finalized = state.get("text_finalized", False)
+    
+    if writers_done and not images_done and not text_finalized:
+        result = await _process_text_optimization(state)
+        result["text_finalized"] = True
+        return result
     elif images_done:
         return await _process_image_merge(state)
     else:
-        logger.warning(f"Finalizer triggered but not ready: writers={len(completed_writers)}/4, images={len(completed_image_gens)}/4")
+        logger.warning(f"Finalizer triggered but not ready: writers={len(completed_writers)}/4, images={len(completed_image_gens)}/4, text_finalized={text_finalized}")
         return {}
 
 

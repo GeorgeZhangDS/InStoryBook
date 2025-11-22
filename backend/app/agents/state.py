@@ -24,6 +24,7 @@ class StoryState(TypedDict):
     completed_image_gens: Annotated[List[int], operator.add]
     
     finalized_story: Optional[Dict[str, Any]]
+    text_finalized: bool
     
     session_id: str
     messages: Annotated[List[BaseMessage], add_messages]
