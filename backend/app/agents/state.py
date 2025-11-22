@@ -1,6 +1,7 @@
 """
 LangGraph state definition for story generation workflow
 """
+import operator
 from typing import TypedDict, List, Optional, Dict, Any, Annotated
 from langgraph.graph.message import add_messages
 from langchain_core.messages import BaseMessage
@@ -18,9 +19,8 @@ class StoryState(TypedDict):
     
     chapters: Annotated[List[Dict[str, Any]], add_messages]
     
-    completed_writers: List[int]
-    completed_image_prompts: List[int]
-    completed_image_gens: List[int]
+    completed_writers: Annotated[List[int], operator.add]
+    completed_image_gens: Annotated[List[int], operator.add]
     
     quality_check_passed: bool
     quality_issues: Optional[List[str]]

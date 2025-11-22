@@ -1,27 +1,14 @@
 """
 StoryPlannerAgent - Plans story outline
 """
-import json
-import re
 import logging
 from typing import Dict, Any
 
 from app.agents.state import StoryState
 from app.services.ai_services import get_text_generator
+from app.utils import extract_json
 
 logger = logging.getLogger(__name__)
-
-
-def _extract_json(text: str) -> Dict[str, Any]:
-    """Extract JSON from text"""
-    text = text.strip()
-    json_match = re.search(r'```(?:json)?\s*(\{.*\})\s*```', text, re.DOTALL)
-    if json_match:
-        return json.loads(json_match.group(1))
-    json_match = re.search(r'\{.*\}', text, re.DOTALL)
-    if json_match:
-        return json.loads(json_match.group(0))
-    return {}
 
 
 def _fill_defaults(data: Dict[str, Any]) -> Dict[str, Any]:
@@ -111,7 +98,7 @@ If information is COMPLETE:
             response_format={"type": "json_object"}
         )
         
-        response_json = _extract_json(response_text)
+        response_json = extract_json(response_text)
         if not response_json: logger.warning("PlannerAgent received empty JSON, using defaults.")
         return _fill_defaults(response_json)
         
