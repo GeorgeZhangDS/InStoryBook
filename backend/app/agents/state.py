@@ -19,12 +19,12 @@ class StoryState(TypedDict):
     suggestions: Optional[List[str]]
     
     # Writer Agents
-    chapters: Annotated[List[Dict[str, Any]], add_messages]
+    chapters: Annotated[List[Dict[str, Any]], operator.add]
     completed_writers: Annotated[List[int], operator.add]
     completed_image_gens: Annotated[List[int], operator.add]
     
-    finalized_story: Optional[Dict[str, Any]]
-    text_finalized: bool
+    finalized_text: Optional[Dict[str, Any]]
+    finalized_images: Optional[Dict[str, Any]]
     
     session_id: str
     messages: Annotated[List[BaseMessage], add_messages]

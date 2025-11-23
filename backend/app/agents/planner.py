@@ -55,16 +55,22 @@ async def planner_agent(state: StoryState) -> Dict[str, Any]:
 User theme: {theme}
 
 Steps:
-1. Detect the language of the user's input (e.g., "en" for English, "zh" for Chinese, "es" for Spanish, etc.). Default to "en" if uncertain.
+1. Detect the language of the user's input:
+   - If the input contains Chinese characters, return "zh"
+   - If the input is in English, return "en"
+   - For other languages, use appropriate codes: "es" for Spanish, "fr" for French, "de" for German, etc.
+   - IMPORTANT: Accurately detect the language based on the actual content, not default to "en"
 2. Evaluate if the theme has enough information (clear characters, setting, plot direction). If not, set needs_info=true.
-3. If needs_info=true, provide missing_fields and suggestions.
-4. If needs_info=false, generate the complete story outline.
+3. If needs_info=true, provide missing_fields and suggestions in the detected language.
+4. If needs_info=false, generate the complete story outline in the detected language.
 
-IMPORTANT: The "image_description" field for each chapter MUST be in English, regardless of the detected language. This is for image generation services.
+IMPORTANT RULES:
+- The "language" field MUST match the language of the user's input
+- The "image_description" field for each chapter MUST be in English, regardless of the detected language (for image generation services)
 
 Return JSON in one of these formats:
 
-If information is INCOMPLETE:
+If information is INCOMPLETE (use the detected language code):
 {{
     "needs_info": true,
     "language": "en",
@@ -72,7 +78,7 @@ If information is INCOMPLETE:
     "suggestions": ["suggestion1", "suggestion2"]
 }}
 
-If information is COMPLETE:
+If information is COMPLETE (use the detected language for language field, titles, and summaries):
 {{
     "needs_info": false,
     "language": "en",

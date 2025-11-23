@@ -1,6 +1,5 @@
 """
-FinalizerAgent - Reentrant agent that processes text first, then images
-Can be triggered multiple times: once when writers complete, once when illustrators complete
+Finalizer Agents - Two separate agents for text and image finalization
 """
 import logging
 from typing import Dict, Any
@@ -12,33 +11,8 @@ from app.utils import extract_json
 logger = logging.getLogger(__name__)
 
 
-async def finalizer_agent(state: StoryState) -> Dict[str, Any]:
-    """
-    Reentrant agent that can be triggered multiple times:
-    1. When all writers complete: optimizes text and returns optimized chapters
-    2. When all illustrators complete: merges images and returns complete chapters
-    """
-    completed_writers = state.get("completed_writers", [])
-    completed_image_gens = state.get("completed_image_gens", [])
-    
-    writers_done = len(completed_writers) == 4
-    images_done = len(completed_image_gens) == 4
-    
-    text_finalized = state.get("text_finalized", False)
-    
-    if writers_done and not images_done and not text_finalized:
-        result = await _process_text_optimization(state)
-        result["text_finalized"] = True
-        return result
-    elif images_done:
-        return await _process_image_merge(state)
-    else:
-        logger.warning(f"Finalizer triggered but not ready: writers={len(completed_writers)}/4, images={len(completed_image_gens)}/4, text_finalized={text_finalized}")
-        return {}
-
-
-async def _process_text_optimization(state: StoryState) -> Dict[str, Any]:
-    """Optimize text content when all writers complete"""
+async def finalizer_text_agent(state: StoryState) -> Dict[str, Any]:
+    """Finalizes text content, returns text chapters in order (1-4)"""
     chapters_list = []
     for chapter in state.get("chapters", []):
         if "content" in chapter:
@@ -50,9 +24,22 @@ async def _process_text_optimization(state: StoryState) -> Dict[str, Any]:
     
     chapters_list.sort(key=lambda x: x["chapter_id"])
     
+    ordered_chapters = []
+    for chapter_id in range(1, 5):
+        chapter = next((ch for ch in chapters_list if ch["chapter_id"] == chapter_id), None)
+        if chapter:
+            ordered_chapters.append(chapter)
+        else:
+            logger.warning(f"Chapter {chapter_id} text missing")
+            ordered_chapters.append({
+                "chapter_id": chapter_id,
+                "title": f"Chapter {chapter_id}",
+                "content": ""
+            })
+    
     chapters_text = "\n\n".join([
         f"Chapter {ch['chapter_id']}: {ch['title']}\n{ch['content']}"
-        for ch in chapters_list
+        for ch in ordered_chapters
     ])
     
     outline = state["story_outline"]
@@ -74,7 +61,7 @@ OPTIMIZATION TASKS:
 4. Ensure smooth narrative progression
 5. Maintain consistency with the original style and characters
 
-Return JSON with optimized chapters:
+Return JSON with optimized chapters in order (chapter_id 1, 2, 3, 4):
 {{
     "chapters": [
         {{"chapter_id": 1, "title": "Title", "content": "Optimized content"}},
@@ -84,7 +71,7 @@ Return JSON with optimized chapters:
     ]
 }}
 
-IMPORTANT: Only optimize the text content, keep the same chapter structure and titles. Return ONLY valid JSON."""
+IMPORTANT: Only optimize text content, keep same structure. Return chapters in order: 1, 2, 3, 4. Return ONLY valid JSON."""
 
     try:
         response_text = await get_text_generator().generate(
@@ -96,19 +83,40 @@ IMPORTANT: Only optimize the text content, keep the same chapter structure and t
         
         response_json = extract_json(response_text)
         if not response_json:
-            logger.warning("FinalizerAgent received empty JSON, using original chapters")
-            optimized_chapters = chapters_list
+            logger.warning("FinalizerTextAgent received empty JSON, using original chapters")
+            optimized_chapters = ordered_chapters
         else:
-            optimized_chapters = response_json.get("chapters", chapters_list)
+            optimized_chapters = response_json.get("chapters", ordered_chapters)
+            optimized_chapters.sort(key=lambda x: x.get("chapter_id", 0))
         
-        return {"finalized_story": {"chapters": optimized_chapters}}
+        text_only_chapters = []
+        for ch in optimized_chapters:
+            text_only_chapters.append({
+                "chapter_id": ch.get("chapter_id"),
+                "title": ch.get("title", f"Chapter {ch.get('chapter_id')}"),
+                "content": ch.get("content", "")
+            })
+        
+        return {
+            "finalized_text": {"chapters": text_only_chapters}
+        }
         
     except Exception as e:
         logger.error(f"Finalizer text optimization error: {e}")
-        return {"finalized_story": {"chapters": chapters_list}}
+        text_only_chapters = []
+        for ch in ordered_chapters:
+            text_only_chapters.append({
+                "chapter_id": ch["chapter_id"],
+                "title": ch.get("title", f"Chapter {ch['chapter_id']}"),
+                "content": ch.get("content", "")
+            })
+        return {
+            "finalized_text": {"chapters": text_only_chapters}
+        }
 
 
-async def _process_image_merge(state: StoryState) -> Dict[str, Any]:
+async def finalizer_image_agent(state: StoryState) -> Dict[str, Any]:
+    """Finalizes images only, returns chapter_id and image in order (1-4)"""
     images_list = []
     for chapter in state.get("chapters", []):
         if "image" in chapter:
@@ -118,6 +126,13 @@ async def _process_image_merge(state: StoryState) -> Dict[str, Any]:
             })
     
     images_list.sort(key=lambda x: x["chapter_id"])
+    images_map = {img["chapter_id"]: img["image"] for img in images_list}
     
-    return {"finalized_story": {"chapters": images_list}}
-
+    image_only_chapters = []
+    for chapter_id in range(1, 5):
+        image_only_chapters.append({
+            "chapter_id": chapter_id,
+            "image": images_map.get(chapter_id, None)
+        })
+    
+    return {"finalized_images": {"chapters": image_only_chapters}}
