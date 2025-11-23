@@ -115,7 +115,7 @@ def create_story_graph() -> CompiledStateGraph:
     # Finalizer_image completes the workflow
     workflow.add_edge("finalizer_image", END)
     
-    # Enable checkpointer for multi-turn execution (required for cycles/reentrant nodes)
+    # Enable checkpointer for multi-turn execution
     checkpointer = MemorySaver()
     return workflow.compile(checkpointer=checkpointer)
 
