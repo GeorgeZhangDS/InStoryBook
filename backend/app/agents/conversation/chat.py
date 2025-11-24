@@ -40,10 +40,18 @@ User message: {theme}
 3. Keep response concise
 4. Make the conversation fun and enjoyable for children
 
+=== Task ===
+1. Generate a friendly chat response
+2. Update the memory summary by adding the assistant's response:
+   - Add the assistant's response to the current summary
+   - Keep summary concise and under 500 words, compress it while keeping key info
+   - Maintain chronological flow of conversation
+
 === Output Format ===
 Return ONLY JSON:
 {{
-    "chat_response": "your friendly response in the same language as user's message"
+    "chat_response": "your friendly response in the same language as user's message",
+    "memory_summary": "updated summary including assistant's response"
 }}"""
     
     try:
@@ -51,16 +59,21 @@ Return ONLY JSON:
         response = await text_generator.generate(
             prompt=prompt,
             temperature=0.7,
-            max_tokens=200,
+            max_tokens=2000,
             response_format={"type": "json_object"}
         )
         result = extract_json(response)
+        chat_response = result.get("chat_response", "I'm here to help! Would you like to create a story?").strip()
+        updated_summary = result.get("memory_summary", memory_summary or "")
+        
         return {
-            "chat_response": result.get("chat_response", "I'm here to help! Would you like to create a story?").strip(),
+            "chat_response": chat_response,
+            "memory_summary": updated_summary
         }
     except Exception as e:
         logger.error(f"Chat error: {e}")
         return {
             "chat_response": "I'm here to help! Would you like to create a story?",
+            "memory_summary": memory_summary
         }
 
