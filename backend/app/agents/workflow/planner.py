@@ -48,11 +48,14 @@ def _fill_defaults(data: Dict[str, Any]) -> Dict[str, Any]:
 async def planner_agent(state: StoryState) -> Dict[str, Any]:
     """StoryPlannerAgent - Generates story outline and detects language"""
     theme = state.get("theme", "")
+    memory_summary = state.get("memory_summary", "")
     text_generator = get_text_generator()
+    
+    context = f"Memory summary: {memory_summary}\n" if memory_summary else ""
     
     prompt = f"""Analyze the user's theme and determine if there's enough information to create a complete 4-chapter children's story.
 
-User theme: {theme}
+{context}User theme: {theme}
 
 Steps:
 1. Detect the language of the user's input:

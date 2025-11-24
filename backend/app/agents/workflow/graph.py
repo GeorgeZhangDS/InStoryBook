@@ -1,5 +1,5 @@
 """
-LangGraph workflow graph for story generation
+Story Graph - Workflow container for story generation
 """
 import logging
 from functools import partial
@@ -9,7 +9,7 @@ from langgraph.graph import StateGraph, END
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.checkpoint.memory import MemorySaver
 
-from .state import StoryState
+from app.agents.state import StoryState
 from .planner import planner_agent
 from .writer import writer_agent
 from .illustrator import illustrator_agent
