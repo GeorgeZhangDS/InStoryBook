@@ -13,7 +13,6 @@ def api_keys_available() -> dict:
         "aws_access_key": bool(os.getenv("AWS_ACCESS_KEY")),
         "aws_secret_key": bool(os.getenv("AWS_SECRET_KEY")),
         "openai_key": bool(os.getenv("OPENAI_API_KEY")),
-        "stability_key": bool(os.getenv("STABILITY_API_KEY")),
     }
 
 

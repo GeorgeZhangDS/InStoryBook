@@ -21,9 +21,6 @@ HAS_OPENAI_KEY = bool(
     os.getenv("OPENAI_API_KEY") or getattr(settings, "OPENAI_API_KEY", None)
 )
 
-HAS_STABILITY_KEY = bool(
-    os.getenv("STABILITY_API_KEY") or getattr(settings, "STABILITY_API_KEY", None)
-)
 
 
 @pytest.mark.integration
@@ -134,8 +131,8 @@ class TestImageGeneratorIntegration:
 
     @pytest.mark.asyncio
     @pytest.mark.skipif(
-        not (HAS_STABILITY_KEY and HAS_OPENAI_KEY),
-        reason="Stability API key and OpenAI API key required"
+        not HAS_OPENAI_KEY,
+        reason="OpenAI API key required"
     )
     async def test_image_generator_real_api(self):
         """Test image generation with real API calls"""
@@ -143,79 +140,37 @@ class TestImageGeneratorIntegration:
         
         prompt = "a brave rabbit in a magical forest, children's book illustration"
         
-        result = await generator.generate(prompt, style="watercolor")
+        result = await generator.generate(prompt)
         
-        # Verify response format
+        # Verify response format - should be URL
         assert isinstance(result, str)
-        assert result.startswith("data:image/")
-        assert "base64," in result
-        
-        # Verify base64 data exists
-        base64_part = result.split("base64,")[1]
-        assert len(base64_part) > 100  # Should have substantial base64 data
-        
-        print(f"\nImage data URI length: {len(result)} characters")
-        print(f"Image format: {result[:50]}...")
-
-    @pytest.mark.asyncio
-    @pytest.mark.skipif(
-        not (HAS_STABILITY_KEY and HAS_OPENAI_KEY),
-        reason="Stability API key and OpenAI API key required"
-    )
-    async def test_image_generator_different_styles(self):
-        """Test image generation with different styles"""
-        generator = get_image_generator()
-        
-        base_prompt = "a friendly rabbit reading a book"
-        styles = ["cartoon", "watercolor", "realistic"]
-        
-        for style in styles:
-            result = await generator.generate(base_prompt, style=style)
+        assert result.startswith("http")
+        assert ".png" in result or ".jpg" in result or ".webp" in result
             
-            assert isinstance(result, str)
-            assert result.startswith("data:image/")
-            assert "base64," in result
-            
-            print(f"\nStyle '{style}' - Image data URI length: {len(result)}")
+        print(f"\nImage URL: {result}")
 
     @pytest.mark.asyncio
     @pytest.mark.skipif(
         not HAS_OPENAI_KEY,
         reason="OpenAI API key required"
     )
-    async def test_openai_image_generator_direct(self):
-        """Test OpenAI image generator directly"""
-        from app.services.ai_services.image_generator import OpenAIImageGenerator
-        
-        generator = OpenAIImageGenerator()
-        
-        prompt = "a cute rabbit in a garden, children's book illustration"
-        
-        result = await generator.generate(prompt, style="cartoon")
-        
-        assert isinstance(result, str)
-        assert result.startswith("data:image/")
-        assert "base64," in result
-        
-        print(f"\nOpenAI image result length: {len(result)}")
-
-    @pytest.mark.asyncio
-    @pytest.mark.skipif(
-        not (HAS_STABILITY_KEY and HAS_OPENAI_KEY),
-        reason="Stability API key and OpenAI API key required"
-    )
-    async def test_image_generator_fallback_mechanism(self):
-        """Test fallback mechanism for image generation"""
+    async def test_image_generator_different_prompts(self):
+        """Test image generation with different prompts"""
         generator = get_image_generator()
         
-        prompt = "a magical unicorn in a rainbow forest"
+        prompts = [
+            "a friendly rabbit reading a book",
+            "a magical unicorn in a rainbow forest",
+            "a brave knight and a dragon"
+        ]
         
+        for prompt in prompts:
         result = await generator.generate(prompt)
         
-        # Should get a result from either primary or fallback
         assert isinstance(result, str)
-        assert result.startswith("data:image/")
-        print(f"\nImage result (from primary or fallback): {result[:100]}...")
+            assert result.startswith("http")
+            
+            print(f"\nPrompt '{prompt}' - Image URL: {result}")
 
 
 @pytest.mark.integration
@@ -224,8 +179,8 @@ class TestEndToEndStoryGeneration:
 
     @pytest.mark.asyncio
     @pytest.mark.skipif(
-        not (HAS_AWS_CREDENTIALS and HAS_OPENAI_KEY and HAS_STABILITY_KEY),
-        reason="All API keys required for end-to-end test"
+        not (HAS_AWS_CREDENTIALS and HAS_OPENAI_KEY),
+        reason="AWS credentials and OpenAI API key required for end-to-end test"
     )
     async def test_story_generation_workflow(self):
         """Test complete story generation workflow"""
@@ -259,17 +214,14 @@ class TestEndToEndStoryGeneration:
         assert len(image_prompt) > 20
         
         # Step 3: Generate image
-        image_data = await image_generator.generate(
-            image_prompt,
-            style="children's book illustration"
-        )
+        image_url = await image_generator.generate(image_prompt)
         
-        assert isinstance(image_data, str)
-        assert image_data.startswith("data:image/")
+        assert isinstance(image_url, str)
+        assert image_url.startswith("http")
         
         print(f"\n=== Story Generation Workflow Test ===")
         print(f"Story text: {story_text}")
         print(f"Image prompt: {image_prompt}")
-        print(f"Image generated: {len(image_data)} characters")
+        print(f"Image URL: {image_url}")
         print("=" * 50)
 

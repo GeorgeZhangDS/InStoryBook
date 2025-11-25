@@ -94,7 +94,7 @@ class TestChapterContent:
             chapter_id=1,
             title="Chapter 1",
             text="Content",
-            image_url="data:image/png;base64,xxx",
+            image_url="https://oaidalleapiprodscus.blob.core.windows.net/private/xxx.png",
             image_prompt="a brave rabbit in the forest"
         )
         assert chapter.image_url is not None

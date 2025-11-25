@@ -31,8 +31,7 @@ def test_ai_provider_config():
     assert settings.AI_FALLBACK_PROVIDER in ["nova", "openai"]
 
 
-def test_image_provider_config():
-    """Test image provider configuration"""
-    assert settings.IMAGE_PROVIDER in ["stability", "openai"]
-    assert settings.IMAGE_FALLBACK_PROVIDER in ["stability", "openai"]
+def test_openai_image_model_config():
+    """Test OpenAI image model configuration"""
+    assert settings.OPENAI_IMAGE_MODEL == "gpt-image-1-mini"
 
