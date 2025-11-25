@@ -49,11 +49,59 @@ async def planner_agent(state: StoryState) -> Dict[str, Any]:
     """StoryPlannerAgent - Generates story outline and detects language"""
     theme = state.get("theme", "")
     memory_summary = state.get("memory_summary", "")
+    intent = state.get("intent", "story_generate")
+    existing_outline = state.get("story_outline")
     text_generator = get_text_generator()
     
     context = f"Memory summary: {memory_summary}\n" if memory_summary else ""
     
-    prompt = f"""Analyze the user's theme and determine if there's enough information to create a complete 4-chapter children's story.
+    if intent == "regenerate" and existing_outline:
+        outline_context = f"""
+=== EXISTING STORY OUTLINE (MODIFY THIS) ===
+Style: {existing_outline.get('style', 'adventure')}
+Characters: {', '.join(existing_outline.get('characters', []))}
+Setting: {existing_outline.get('setting', '')}
+Plot Summary: {existing_outline.get('plot_summary', '')}
+Chapters:
+"""
+        for chapter in existing_outline.get('chapters', []):
+            outline_context += f"  Chapter {chapter.get('chapter_id')}: {chapter.get('title', '')} - {chapter.get('summary', '')}\n"
+        
+        prompt = f"""You are modifying an existing story based on user feedback.
+
+{context}User request: {theme}
+
+{outline_context}
+=== YOUR TASK ===
+Based on the user's request, MODIFY the existing story outline above:
+1. Keep elements that the user doesn't want to change
+2. Modify elements based on user's feedback
+3. Maintain story coherence and consistency
+4. Detect the language from user's input (keep same language if not specified)
+
+IMPORTANT RULES:
+- The "language" field MUST match the language of the user's input
+- The "image_description" field for each chapter MUST be in English, regardless of the detected language (for image generation services)
+
+Return JSON format:
+{{
+    "needs_info": false,
+    "language": "en",
+    "story_outline": {{
+        "style": "adventure|fantasy|educational|friendship",
+        "characters": ["character1", "character2"],
+        "setting": "setting description",
+        "plot_summary": "overall plot",
+        "chapters": [
+            {{"chapter_id": 1, "title": "Title", "summary": "Summary", "image_description": "English description for image generation"}},
+            {{"chapter_id": 2, "title": "Title", "summary": "Summary", "image_description": "English description for image generation"}},
+            {{"chapter_id": 3, "title": "Title", "summary": "Summary", "image_description": "English description for image generation"}},
+            {{"chapter_id": 4, "title": "Title", "summary": "Summary", "image_description": "English description for image generation"}}
+        ]
+    }}
+}}"""
+    else:
+        prompt = f"""Analyze the user's theme and determine if there's enough information to create a complete 4-chapter children's story.
 
 {context}User theme: {theme}
 
