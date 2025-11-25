@@ -39,19 +39,13 @@ class Settings(BaseSettings):
     OPENAI_MODEL: str = "gpt-4o-mini"
 
     # IMAGE GENERATION CONFIG
-    IMAGE_PROVIDER: str = "stability"
-    IMAGE_FALLBACK_PROVIDER: str = "openai"
-
-    # Stability AI configs
-    STABILITY_API_KEY: Optional[str] = None
-    STABILITY_MODEL: str = "stable-diffusion-xl-1024-v1-0"
-
     # OpenAI Image configs
     OPENAI_IMAGE_MODEL: str = "gpt-image-1-mini"
 
     class Config:
         env_file = ".env"
         case_sensitive = True
+        extra = "ignore"
 
 
 @lru_cache()
