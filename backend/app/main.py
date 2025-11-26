@@ -19,7 +19,6 @@ async def lifespan(app: FastAPI):
     redis_client = get_redis()
     await redis_client.connect()
     print("Redis connected")
-    # TODO: Initialize Celery app
     
     yield
     
@@ -27,7 +26,6 @@ async def lifespan(app: FastAPI):
     print(f"Shutting down {settings.APP_NAME}...")
     await redis_client.disconnect()
     print("Redis disconnected")
-    # TODO: Clean up Celery workers
 
 app = FastAPI(
     title=settings.APP_NAME,
