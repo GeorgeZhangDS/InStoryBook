@@ -50,6 +50,12 @@ export type StoryOutline = {
     language?: string;
 };
 
+export type NeedsInfo = {
+    missing_fields?: string[];
+    suggestions?: string;
+    language?: string;
+};
+
 
 
 /* =========================
@@ -65,6 +71,7 @@ interface ChatState {
     workflowBranch: WorkflowBranch;
     chapters: Chapter[];
     storyOutline: StoryOutline | null;
+    needsInfo: NeedsInfo | null;
     wsConnected: boolean;
 
     setSessionId: (sessionId: string | null) => void;
@@ -79,6 +86,7 @@ interface ChatState {
     setChapters: (chapters: Chapter[]) => void;
     updateChapters: (chapters: Chapter[]) => void;
     setStoryOutline: (outline: StoryOutline | null) => void;
+    setNeedsInfo: (needsInfo: NeedsInfo | null) => void;
     handleWebSocketEvent: (eventType: string, data: Record<string, any>, timestamp?: number) => void;
     reset: () => void;
 }
@@ -110,6 +118,7 @@ export const useChatStore = create<ChatState>()(
     workflowBranch: 'router',
             chapters: [],
             storyOutline: null,
+            needsInfo: null,
             wsConnected: false,
 
             /* =========================
@@ -218,6 +227,8 @@ export const useChatStore = create<ChatState>()(
             }),
 
             setStoryOutline: (outline) => set({ storyOutline: outline }),
+
+            setNeedsInfo: (needsInfo) => set({ needsInfo }),
 
             /* =========================
                Actions - WebSocket Events
@@ -366,9 +377,30 @@ export const useChatStore = create<ChatState>()(
                         }
                         break;
 
+                    case 'needs_info':
+                        get().setNeedsInfo({
+                            missing_fields: data.missing_fields || [],
+                            suggestions: data.suggestions || '',
+                            language: data.language || 'en'
+                        });
+                        get().setIsGenerating(false);
+                        // Set planning step to failed (red) when needs_info
+                        get().updateAgentStep('planning', 'failed', data.suggestions || 'Need more information');
+                        get().addLog('Need more information to continue', 'warning', logTimestamp);
+                        // Add a message to chat showing what's needed
+                        const needsInfoMessage = data.suggestions && data.suggestions.length > 0
+                            ? data.suggestions
+                            : 'I need more information to create your story. Please provide more details about your theme.';
+                        get().addMessage('assistant', needsInfoMessage);
+                        break;
+
                     case 'pipeline_completed':
                         get().setIsGenerating(false);
                         const workflowBranch = get().workflowBranch;
+                        if (data.status === 'needs_info') {
+                            // Already handled by needs_info event
+                            break;
+                        }
                         if (workflowBranch === 'story-graph') {
                             get().addLog('Story generation completed', 'success', logTimestamp);
                             get().updateAgentStep('planning', 'completed');
@@ -405,6 +437,7 @@ export const useChatStore = create<ChatState>()(
                 workflowBranch: 'router',
                 chapters: [],
                 storyOutline: null,
+                needsInfo: null,
             }),
         }),
         {

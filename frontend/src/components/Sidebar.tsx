@@ -126,20 +126,26 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                                                         <div className={`
                                                             w-full p-2 rounded-xl border flex items-center gap-3 bg-white shadow-sm transition-all
                                                             ${step.status === 'active' ? 'border-blue-500 ring-2 ring-blue-500/10' :
-                                                                step.status === 'completed' ? 'border-green-500/50' : 'border-gray-100'}
+                                                                step.status === 'completed' ? 'border-green-500/50' :
+                                                                    step.status === 'failed' ? 'border-red-500 ring-2 ring-red-500/10' :
+                                                                        'border-gray-100'}
                                                         `}>
                                                             <div className={`
                                                                 w-6 h-6 rounded-full flex items-center justify-center shrink-0
                                                                 ${step.status === 'active' ? 'bg-blue-100 text-blue-600' :
-                                                                    step.status === 'completed' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}
+                                                                    step.status === 'completed' ? 'bg-green-100 text-green-600' :
+                                                                        step.status === 'failed' ? 'bg-red-100 text-red-600' :
+                                                                            'bg-gray-100 text-gray-400'}
                                                             `}>
                                                                 {step.status === 'active' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> :
                                                                     step.status === 'completed' ? <Activity className="w-3.5 h-3.5" /> :
-                                                                        <Circle className="w-3.5 h-3.5" />}
+                                                                        step.status === 'failed' ? <X className="w-3.5 h-3.5" /> :
+                                                                            <Circle className="w-3.5 h-3.5" />}
                                                             </div>
                                                             <div className="flex-1 min-w-0">
-                                                                <p className="text-xs font-medium text-gray-900 truncate">{step.name}</p>
+                                                                <p className={`text-xs font-medium truncate ${step.status === 'failed' ? 'text-red-900' : 'text-gray-900'}`}>{step.name}</p>
                                                                 {step.status === 'active' && <p className="text-[10px] text-blue-500 truncate">{step.details}</p>}
+                                                                {step.status === 'failed' && <p className="text-[10px] text-red-500 truncate">{step.details}</p>}
                                                             </div>
                                                         </div>
                                                     </div>

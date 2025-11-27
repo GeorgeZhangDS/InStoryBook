@@ -15,6 +15,7 @@ export type WebSocketEventType =
     | 'finalizer_text'
     | 'finalizer_image'
     | 'pipeline_completed'
+    | 'needs_info'
     | 'error';
 
 export interface WebSocketMessage {
