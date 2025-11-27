@@ -256,23 +256,77 @@ Instorybook/
 ### System Architecture
 
 ```
-┌─────────────────────────────────────────┐
-│         Frontend (React)                │
-│    React + TypeScript + Vite            │
-└──────────────────┬──────────────────────┘
-                   │
-                   │ HTTP + WebSocket
-                   │
-┌──────────────────▼──────────────────────┐
-│      API Gateway (FastAPI)              │
-│      WebSocket-first architecture       │
-└──────────────────┬──────────────────────┘
-                   │
-    ┌──────────────┼
-    │              │              │
-┌───▼───┐    ┌─────▼─────┐
-│ Redis │    │ LangGraph │
-└───────┘    └───────────┘
+┌─────────────────────────────────────────────────────────┐
+│         Frontend (React + TypeScript + Vite)            │
+│         https://in-story-book.vercel.app                │
+└───────────────────────┬─────────────────────────────────┘
+                        │
+                        │ WebSocket
+                        │ /ws/{session_id}
+                        │
+┌───────────────────────▼─────────────────────────────────┐
+│         Backend API (FastAPI)                           │
+│         https://instorybook-production.up.railway.app   │
+│         WebSocket Endpoint + CORS                       │
+└───────────────────────┬─────────────────────────────────┘
+                        │
+        ┌───────────────┼───────────────┐
+        │               │               │
+┌───────▼──────┐        │        ┌──────▼──────┐
+│   Redis      │        │        │   Router    │
+│ (Upstash)    │        │        │   Agent     │
+│ State Store  │        │        │ (Outside)   │
+└───────┬──────┘        │        └──────-┬─────┘
+        │               │                │
+        │               │                ├─ Intent: "chat"
+        │               │                │   └─→ Chat Agent
+        │               │                │       (No Graph)
+        │               │                │
+        │               │                └─ Intent: "story_generate"
+        │               │                    └─→ Story Graph
+        │               │
+        │               │
+┌───────▼───────────────▼─────────────────────────────────┐
+│         Story Graph (LangGraph)                         │
+│  ┌────────────────────────────────────────────┐         │
+│  │ Planner Agent                               │        │
+│  │ - Input validation                          │        │
+│  │ - Story outline generation                 │         │
+│  └──────┬──────────────────────────────────────┘        │
+│         │                                               │
+│         ├─→ FanOut Writers (×4, parallel)               │
+│         │   ├─ Writer 1 (Chapter 1)                     │
+│         │   ├─ Writer 2 (Chapter 2)                     │
+│         │   ├─ Writer 3 (Chapter 3)                     │
+│         │   └─ Writer 4 (Chapter 4)                     │
+│         │                                               │
+│         ├─→ FanOut Illustrators (×4, parallel)          │
+│         │   ├─ Illustrator 1 (Chapter 1)                │
+│         │   ├─ Illustrator 2 (Chapter 2)                │
+│         │   ├─ Illustrator 3 (Chapter 3)                │
+│         │   └─ Illustrator 4 (Chapter 4)                │
+│         │                                               │
+│         └─→ Finalizers                                  │
+│             ├─ FinalizerText (merge & optimize)         │
+│             └─ FinalizerImage (merge & sort)            │  
+└───────────────────────┬─────────────────────────────────┘
+                        │
+                        │ Call AI Services
+                        │
+┌───────────────────────▼─────────────────────────────────┐
+│         AI Services Abstraction Layer                   │
+│  ┌──────────────┐              ┌──────────────┐         │
+│  │ TextGen      │              │ ImageGen     │         │
+│  │ (Fallback)   │              │ (Runware)    │         │
+│  └──────┬───────┘              └──────┬───────┘         │
+└─────────┼─────────────────────────────┼─────────────────┘
+          │                             │
+    ┌─────┴─────┐                 ┌─────┴
+    │           │                 │
+┌───▼───┐  ┌───▼───┐         ┌───▼───┐
+│ Nova  │  │OpenAI │         │Runware│
+│(AWS)  │  │GPT-4o │         │ API   │
+└───────┘  └───────┘         └───────┘
 ```
 
 ### Agent Architecture (LangGraph Level-3)
@@ -296,8 +350,8 @@ Router Agent (Conversation System)
     │
     ├─ intent = "story_generate" ───────────→ Story Graph
     │   │                                         │
-    │   ├─ Clear all story fields                ├─ Planner Agent
-    │   └─ Pass Summary to Planner              │   │
+    │   ├─ Clear all story fields                 ├─ Planner Agent
+    │   └─ Pass Summary to Planner                │   │
     │                                             │   ├─ Check: has outline?
     │                                             │   │   ├─ Yes → Skip planning
     │                                             │   │   └─ No → Input validation
@@ -316,11 +370,11 @@ Router Agent (Conversation System)
     └─ intent = "regenerate" ───────────────→ Story Graph
         │                                         │
         ├─ Keep: story_outline, language          ├─ Planner Agent
-        ├─ Clear: chapters, completed_*          │   │
+        ├─ Clear: chapters, completed_*           │   │
         └─ Pass Summary + Intent to Planner       │   ├─ Use "modify existing" template
-                                                    │   └─ Update outline based on request
-                                                    │
-                                                    └─ Re-generate with modified outline
+                                                  │   └─ Update outline based on request
+                                                  │
+                                                  └─ Re-generate with modified outline
 ```
 
 **Story Graph Workflow:**
