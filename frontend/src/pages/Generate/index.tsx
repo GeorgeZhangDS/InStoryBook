@@ -1,35 +1,70 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { PanelRightOpen } from 'lucide-react';
 import Sidebar from '../../components/Sidebar';
 import ChatInterface from '../../components/ChatInterface';
 import { useChatStore } from '../../stores/chatStore';
 
+
+
+/* =========================
+   Component
+========================= */
 const Generate: React.FC = () => {
+
+    /* =========================
+       Global Store
+    ========================= */
     const { addMessage, messages } = useChatStore();
+    const hasSentInitialPrompt = useRef(false);
+
+
+
+    /* =========================
+       State
+    ========================= */
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+
+
+    /* =========================
+       Effects
+    ========================= */
     useEffect(() => {
-        // Load initial prompt from Home page if it exists and we haven't started chatting
         const initialPrompt = sessionStorage.getItem('initial_prompt');
-        if (initialPrompt && messages.length === 0) {
+
+        if (initialPrompt && messages.length === 0 && !hasSentInitialPrompt.current) {
             addMessage('user', initialPrompt);
-            sessionStorage.removeItem('initial_prompt'); // Clear it so it doesn't send again on refresh
+            sessionStorage.removeItem('initial_prompt');
+            hasSentInitialPrompt.current = true;
+            
+            setTimeout(() => {
+                const event = new CustomEvent('send-initial-message', {
+                    detail: { message: initialPrompt }
+                });
+                window.dispatchEvent(event);
+            }, 500);
         }
     }, [addMessage, messages.length]);
 
+
+
+    /* =========================
+       Render
+    ========================= */
     return (
         <div className="h-screen w-full relative overflow-hidden">
-            {/* Main Chat Area - Resizes when Sidebar is open */}
+
             <div
                 className={`h-full transition-all duration-500 ease-in-out ${isSidebarOpen ? 'mr-96' : 'mx-auto max-w-5xl'}`}
             >
                 <ChatInterface />
             </div>
 
-            {/* Right Sidebar */}
-            <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+            <Sidebar
+                isOpen={isSidebarOpen}
+                onClose={() => setIsSidebarOpen(false)}
+            />
 
-            {/* Toggle Button - Bottom Left */}
             {!isSidebarOpen && (
                 <button
                     onClick={() => setIsSidebarOpen(true)}

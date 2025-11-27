@@ -4,28 +4,46 @@ import {
     Circle,
     Loader2,
     Terminal,
-    Activity, // Keep Activity for now, as it's not explicitly removed by the new header, but Bot is added.
+    Activity,
     ChevronRight,
     X,
-    Bot // Added Bot icon
+    Bot
 } from 'lucide-react';
 import { useChatStore } from '../stores/chatStore';
 
+
+
+/* =========================
+   Props Interface
+========================= */
 interface SidebarProps {
     isOpen: boolean;
     onClose: () => void;
 }
 
+
+
+/* =========================
+   Component
+========================= */
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
+
+    /* =========================
+       Global Store Selectors
+    ========================= */
     const agentSteps = useChatStore((state) => state.agentSteps);
     const logs = useChatStore((state) => state.logs);
     const workflowBranch = useChatStore((state) => state.workflowBranch);
 
+
+
+    /* =========================
+       Render
+    ========================= */
     return (
         <AnimatePresence>
             {isOpen && (
                 <>
-                    {/* Backdrop */}
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -34,7 +52,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                         className="absolute inset-0 bg-black/5 backdrop-blur-[1px] z-40"
                     />
 
-                    {/* Sidebar Panel */}
                     <motion.div
                         initial={{ x: '100%' }}
                         animate={{ x: 0 }}
@@ -42,7 +59,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                         transition={{ type: 'spring', damping: 30, stiffness: 300 }}
                         className="absolute right-0 top-0 bottom-0 h-full w-96 bg-white/90 backdrop-blur-xl border-l border-white/20 shadow-2xl z-50 flex flex-col"
                     >
-                        {/* Header */}
+
                         <div className="p-4 border-b border-gray-100 flex items-center justify-between">
                             <div className="flex items-center gap-2 text-gray-900">
                                 <Bot className="w-4 h-4" />
@@ -56,10 +73,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                             </button>
                         </div>
 
-                        {/* Workflow Tree */}
                         <div className="p-6 overflow-y-auto max-h-[60%] border-b border-gray-100 relative min-h-[300px]">
                             <div className="flex flex-col items-center">
-                                {/* Root: Router */}
+
                                 <div className="relative z-10 flex flex-col items-center">
                                     <div className={`
                                         w-12 h-12 rounded-2xl border-2 flex items-center justify-center bg-white shadow-sm transition-all duration-300
@@ -77,30 +93,23 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                                         }`}>Router</span>
                                 </div>
 
-                                {/* Branch Lines */}
                                 <div className="relative w-48 h-8">
-                                    {/* Vertical Stem */}
                                     <div className={`absolute left-1/2 top-0 h-4 w-0.5 -translate-x-1/2 transition-colors duration-300 ${workflowBranch === 'story-graph' ? 'bg-blue-500' :
                                         workflowBranch === 'chat' ? 'bg-green-500' : 'bg-gray-200'
                                         }`} />
 
-                                    {/* Horizontal Bar - Left Half */}
                                     <div className={`absolute left-0 right-1/2 top-4 h-0.5 rounded-l-full transition-colors duration-300 ${workflowBranch === 'story-graph' ? 'bg-blue-500' : 'bg-gray-200'
                                         }`} />
 
-                                    {/* Horizontal Bar - Right Half */}
                                     <div className={`absolute left-1/2 right-0 top-4 h-0.5 rounded-r-full transition-colors duration-300 ${workflowBranch === 'chat' ? 'bg-green-500' : 'bg-gray-200'
                                         }`} />
 
-                                    {/* Left Drop */}
                                     <div className={`absolute left-0 top-4 h-4 w-0.5 transition-colors duration-300 ${workflowBranch === 'story-graph' ? 'bg-blue-500' : 'bg-gray-200'}`} />
-                                    {/* Right Drop */}
                                     <div className={`absolute right-0 top-4 h-4 w-0.5 transition-colors duration-300 ${workflowBranch === 'chat' ? 'bg-green-500' : 'bg-gray-200'}`} />
                                 </div>
 
-                                {/* Branches */}
                                 <div className="flex justify-between w-full gap-4">
-                                    {/* Left Branch: Story Graph */}
+
                                     <div className={`flex-1 flex flex-col items-center transition-opacity duration-300 ${workflowBranch === 'chat' ? 'opacity-40 grayscale' : 'opacity-100'}`}>
                                         <div className={`
                                             px-3 py-1.5 rounded-lg border text-xs font-medium mb-4 transition-all
@@ -109,7 +118,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                                             Story Graph
                                         </div>
 
-                                        {/* Story Pipeline Steps */}
                                         {workflowBranch === 'story-graph' && (
                                             <div className="flex flex-col items-center w-full space-y-1">
                                                 {agentSteps.filter(s => s.id !== 'router').map((step, index) => (
@@ -140,7 +148,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                                         )}
                                     </div>
 
-                                    {/* Right Branch: Chat */}
                                     <div className={`flex-1 flex flex-col items-center transition-opacity duration-300 ${workflowBranch === 'story-graph' ? 'opacity-40 grayscale' : 'opacity-100'}`}>
                                         <div className={`
                                             px-3 py-1.5 rounded-lg border text-xs font-medium mb-4 transition-all
@@ -163,10 +170,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                             </div>
                         </div>
 
-                        {/* Log Stream Section */}
-
-
-                        {/* Log Stream Section */}
                         <div className="flex-1 flex flex-col min-h-0 bg-gray-50/50">
                             <div className="p-4 border-b border-gray-100/50 flex items-center gap-2">
                                 <Terminal className="w-4 h-4 text-gray-400" />
