@@ -26,7 +26,7 @@ openai>=1.54.0
 boto3>=1.35.0
 
 # Runware SDK
-runware>=1.0.0
+runware>=0.4.0
 
 # Testing
 pytest>=8.3.0
