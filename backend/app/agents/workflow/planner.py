@@ -86,6 +86,19 @@ Based on the user's request, MODIFY the existing story outline above:
 IMPORTANT RULES:
 - The "language" field MUST match the language of the user's input
 - The "image_description" field for each chapter MUST be in English, regardless of the detected language (for image generation services)
+- CRITICAL: The "image_description" MUST explicitly specify the character type (human person, animal, object, etc.):
+  * If the character is a human: explicitly state "human person", "child", "boy", "girl", "man", "woman", etc.
+  * If the character is an animal: explicitly state the animal type (e.g., "cat", "dog", "rabbit", "bear", "dragon", etc.)
+  * If the character is an object or other entity: explicitly state what it is (e.g., "robot", "toy", "magical creature", etc.)
+  * NEVER use only a character name without specifying the type - always include both name and type (e.g., "a cat named Max" not just "Max")
+  * Examples of GOOD image descriptions:
+    - "A small orange cat named Max playing in a garden"
+    - "A young human boy named Alex exploring a forest"
+    - "A friendly brown dog named Buddy running in a park"
+    - "A magical dragon named Sparkle flying over mountains"
+  * Examples of BAD image descriptions (missing character type):
+    - "Max playing in a garden" (unclear if Max is human or animal)
+    - "Alex exploring a forest" (unclear if Alex is human or animal)
 
 Return JSON format:
 {{
@@ -97,10 +110,10 @@ Return JSON format:
         "setting": "setting description",
         "plot_summary": "overall plot",
         "chapters": [
-            {{"chapter_id": 1, "title": "Title", "summary": "Summary", "image_description": "English description for image generation"}},
-            {{"chapter_id": 2, "title": "Title", "summary": "Summary", "image_description": "English description for image generation"}},
-            {{"chapter_id": 3, "title": "Title", "summary": "Summary", "image_description": "English description for image generation"}},
-            {{"chapter_id": 4, "title": "Title", "summary": "Summary", "image_description": "English description for image generation"}}
+            {{"chapter_id": 1, "title": "Title", "summary": "Summary", "image_description": "English description with explicit character type for image generation"}},
+            {{"chapter_id": 2, "title": "Title", "summary": "Summary", "image_description": "English description with explicit character type for image generation"}},
+            {{"chapter_id": 3, "title": "Title", "summary": "Summary", "image_description": "English description with explicit character type for image generation"}},
+            {{"chapter_id": 4, "title": "Title", "summary": "Summary", "image_description": "English description with explicit character type for image generation"}}
         ]
     }}
 }}"""
@@ -135,6 +148,19 @@ Steps:
 IMPORTANT RULES:
 - The "language" field MUST match the language of the user's input
 - The "image_description" field for each chapter MUST be in English, regardless of the detected language (for image generation services)
+- CRITICAL: The "image_description" MUST explicitly specify the character type (human person, animal, object, etc.):
+  * If the character is a human: explicitly state "human person", "child", "boy", "girl", "man", "woman", etc.
+  * If the character is an animal: explicitly state the animal type (e.g., "cat", "dog", "rabbit", "bear", "dragon", etc.)
+  * If the character is an object or other entity: explicitly state what it is (e.g., "robot", "toy", "magical creature", etc.)
+  * NEVER use only a character name without specifying the type - always include both name and type (e.g., "a cat named Max" not just "Max")
+  * Examples of GOOD image descriptions:
+    - "A small orange cat named Max playing in a garden"
+    - "A young human boy named Alex exploring a forest"
+    - "A friendly brown dog named Buddy running in a park"
+    - "A magical dragon named Sparkle flying over mountains"
+  * Examples of BAD image descriptions (missing character type):
+    - "Max playing in a garden" (unclear if Max is human or animal)
+    - "Alex exploring a forest" (unclear if Alex is human or animal)
 - DEFAULT to needs_info=false and CREATE a story. Only use needs_info=true for truly empty or nonsensical inputs.
 - Be creative and fill in missing details with imaginative, child-appropriate content
 
@@ -158,10 +184,10 @@ If information is COMPLETE (use the detected language for language field, titles
         "setting": "setting description",
         "plot_summary": "overall plot",
         "chapters": [
-            {{"chapter_id": 1, "title": "Title", "summary": "Summary", "image_description": "English description for image generation"}},
-            {{"chapter_id": 2, "title": "Title", "summary": "Summary", "image_description": "English description for image generation"}},
-            {{"chapter_id": 3, "title": "Title", "summary": "Summary", "image_description": "English description for image generation"}},
-            {{"chapter_id": 4, "title": "Title", "summary": "Summary", "image_description": "English description for image generation"}}
+            {{"chapter_id": 1, "title": "Title", "summary": "Summary", "image_description": "English description with explicit character type for image generation"}},
+            {{"chapter_id": 2, "title": "Title", "summary": "Summary", "image_description": "English description with explicit character type for image generation"}},
+            {{"chapter_id": 3, "title": "Title", "summary": "Summary", "image_description": "English description with explicit character type for image generation"}},
+            {{"chapter_id": 4, "title": "Title", "summary": "Summary", "image_description": "English description with explicit character type for image generation"}}
         ]
     }}
 }}"""
