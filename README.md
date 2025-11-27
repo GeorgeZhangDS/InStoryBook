@@ -21,6 +21,8 @@
 
 Generate beautiful children's storybooks with AI-powered text and illustrations through intelligent multi-agent workflows.
 
+**[🎉 Try it now: https://in-story-book.vercel.app](https://in-story-book.vercel.app)**
+
 </div>
 
 ## Quick Start
@@ -52,9 +54,10 @@ cp env.example .env
 ```
 
 4. Access the application:
-- Frontend: http://localhost:5173
-- Backend API: http://localhost:8000
-- API Docs: http://localhost:8000/docs
+- **Live Demo**: https://in-story-book.vercel.app
+- Frontend (local): http://localhost:5173
+- Backend API (local): http://localhost:8000
+- API Docs (local): http://localhost:8000/docs
 
 5. Stop all services:
 ```bash
@@ -615,8 +618,6 @@ npm test
 
 ## Deployment
 
-For production deployment, see [DEPLOYMENT.md](DEPLOYMENT.md).
-
-- **Backend**: Railway (Docker)
-- **Frontend**: Vercel
+- **Backend**: Railway (Docker) - https://instorybook-production.up.railway.app
+- **Frontend**: Vercel - https://in-story-book.vercel.app
 - **Redis**: Upstash

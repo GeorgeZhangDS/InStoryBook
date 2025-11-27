@@ -22,6 +22,7 @@ class Settings(BaseSettings):
 
     # CORS
     CORS_ORIGINS: Union[List[str], str] = [
+        "https://in-story-book.vercel.app",
         "http://localhost:5173",
     ]
 
