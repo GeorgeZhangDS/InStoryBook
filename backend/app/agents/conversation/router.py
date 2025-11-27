@@ -21,15 +21,19 @@ async def router_agent(state: StoryState) -> Dict[str, Any]:
             "memory_summary": current_summary
         }
     
-    prompt = f"""You are a router agent. Classify user intent based on the current user input.
+    prompt = f"""You are a router agent. Your PRIMARY goal is to ACCURATELY determine what the user wants to do based on their input.
 
     === Input ===
     User input: {user_input}
     Current summary: {current_summary or "(No previous summary)"}
 
     === Task 1: Intent Classification ===
-    Analyze ONLY the user's CURRENT input to determine their intent.
-    Do NOT infer intent from previous turns except to distinguish between "new story" and "current story".
+    CRITICAL: You must ACCURATELY analyze the user's CURRENT input to determine their true intent.
+    - Read the user input CAREFULLY and understand what they are actually asking for
+    - Pay attention to keywords, context, and explicit requests
+    - Be precise: match the intent to what the user is actually trying to accomplish
+    - Do NOT infer intent from previous turns except to distinguish between "new story" and "current story"
+    - When in doubt, analyze the input more carefully rather than defaulting to a safe option
 
     Intent definitions (STRICT):
 
@@ -73,13 +77,16 @@ async def router_agent(state: StoryState) -> Dict[str, Any]:
     - 你好
     - vite 是 hot reload 吗
 
-    STRICT RULES:
-    - Classification MUST be based ONLY on the user's CURRENT input.
-    - NEVER infer generation or modification intent from context alone.
+    STRICT RULES FOR ACCURATE CLASSIFICATION:
+    - Classification MUST be based ONLY on the user's CURRENT input, but analyze it THOROUGHLY.
+    - ACCURATELY identify the user's true intent: Are they asking a question? Creating new content? Modifying existing content?
+    - NEVER infer generation or modification intent from context alone, but DO recognize explicit requests clearly.
     - NEVER choose "story_generate" unless the user clearly wants a BRAND NEW story.
     - ANY request that modifies or continues the current story MUST be "regenerate".
     - Story-related QUESTIONS must ALWAYS be "chat".
-    - IF there is ANY uncertainty, ambiguity, or missing explicit instruction, ALWAYS choose "chat".
+    - If the user input is a story theme, idea, or story request (even if brief), it should be "story_generate", NOT "chat".
+    - Only choose "chat" if the user is clearly asking a question, having a conversation, or NOT requesting story generation/modification.
+    - Be ACCURATE: If the user wants to create a story (even with minimal input), choose "story_generate". If they want to modify, choose "regenerate". If they're just chatting, choose "chat".
 
     === Task 2: Summary Update ===
     Based on current summary and user input, generate updated summary:
