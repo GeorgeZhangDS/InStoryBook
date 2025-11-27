@@ -29,10 +29,11 @@ class Settings(BaseSettings):
     AI_FALLBACK_PROVIDER: str = "openai"
 
     # Nova (Amazon Bedrock) configs
+    # Options: nova-micro-v1:0 (fastest), nova-lite-v1:0 (balanced), nova-pro-v1:0 (most capable)
     AWS_ACCESS_KEY: Optional[str] = None
     AWS_SECRET_KEY: Optional[str] = None
     AWS_REGION: str = "us-east-1"
-    NOVA_MODEL: str = "us.amazon.nova-micro-v1:0"
+    NOVA_MODEL: str = "us.amazon.nova-lite-v1:0"  # Upgraded from micro to lite for better intelligence while maintaining efficiency
 
     # OpenAI configs
     OPENAI_API_KEY: Optional[str] = None
