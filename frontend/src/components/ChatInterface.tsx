@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Send, Sparkles, User } from 'lucide-react';
+import { Send, Sparkles, User, Download } from 'lucide-react';
 import { useChatStore } from '../stores/chatStore';
 import { useWebSocket, WebSocketMessage } from '../hooks/useWebSocket';
+import jsPDF from 'jspdf';
 
 
 /* =========================
@@ -68,6 +69,8 @@ const ChatInterface: React.FC = () => {
     ========================= */
     const messages = useChatStore((state) => state.messages);
     const isGenerating = useChatStore((state) => state.isGenerating);
+    const chapters = useChatStore((state) => state.chapters);
+    const storyOutline = useChatStore((state) => state.storyOutline);
     const getOrCreateSessionId = useChatStore((state) => state.getOrCreateSessionId);
     const handleWebSocketEvent = useChatStore((state) => state.handleWebSocketEvent);
     const addMessage = useChatStore((state) => state.addMessage);
@@ -208,6 +211,157 @@ const ChatInterface: React.FC = () => {
         }
     };
 
+    /* =========================
+       Download Story Function
+    ========================= */
+    const downloadStory = useCallback(async () => {
+        if (chapters.length === 0) return;
+
+        // Create PDF with A4 size (210mm x 297mm)
+        const pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4'
+        });
+
+        const pageWidth = 210;
+        const pageHeight = 297;
+        const margin = 15;
+        const contentWidth = pageWidth - (margin * 2);
+        const imageWidth = contentWidth;
+        const imageHeight = 150; // Larger image height
+        let yPosition = margin;
+
+        // Helper function to add a new page
+        const addNewPage = () => {
+            pdf.addPage();
+            yPosition = margin;
+        };
+
+        // Helper function to add text with word wrap
+        const addText = (text: string, fontSize: number, isBold: boolean = false) => {
+            pdf.setFontSize(fontSize);
+            pdf.setFont('helvetica', isBold ? 'bold' : 'normal');
+            
+            const lines = pdf.splitTextToSize(text, contentWidth);
+            const lineHeight = fontSize * 0.4;
+            
+            lines.forEach((line: string) => {
+                if (yPosition + lineHeight > pageHeight - margin) {
+                    addNewPage();
+                }
+                pdf.text(line, margin, yPosition);
+                yPosition += lineHeight;
+            });
+        };
+
+        // Add title page if story outline exists
+        if (storyOutline) {
+            pdf.setFontSize(24);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('My Storybook', pageWidth / 2, 50, { align: 'center' });
+            
+            yPosition = 70;
+            pdf.setFontSize(12);
+            pdf.setFont('helvetica', 'normal');
+            
+            if (storyOutline.style) {
+                addText(`Style: ${storyOutline.style}`, 12);
+                yPosition += 5;
+            }
+            if (storyOutline.characters && storyOutline.characters.length > 0) {
+                addText(`Characters: ${storyOutline.characters.join(', ')}`, 12);
+                yPosition += 5;
+            }
+            if (storyOutline.setting) {
+                addText(`Setting: ${storyOutline.setting}`, 12);
+                yPosition += 5;
+            }
+            if (storyOutline.plot_summary) {
+                yPosition += 5;
+                addText(`Plot: ${storyOutline.plot_summary}`, 12);
+            }
+            
+            addNewPage();
+        }
+
+        // Add each chapter on a separate page
+        for (let i = 0; i < chapters.length; i++) {
+            const chapter = chapters[i];
+            
+            // Start new page for each chapter (except first if no outline)
+            if (i > 0 || storyOutline) {
+                addNewPage();
+            }
+
+            yPosition = margin;
+
+            // Add chapter title
+            pdf.setFontSize(20);
+            pdf.setFont('helvetica', 'bold');
+            const chapterTitle = `Chapter ${chapter.chapter_id}: ${chapter.title}`;
+            pdf.text(chapterTitle, margin, yPosition);
+            yPosition += 15;
+
+            // Add image if available
+            if (chapter.image_url) {
+                try {
+                    // Load image and add to PDF
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    
+                    await new Promise((resolve, reject) => {
+                        img.onload = () => {
+                            try {
+                                // Calculate dimensions to fit within content width
+                                const imgAspectRatio = img.width / img.height;
+                                let finalWidth = imageWidth;
+                                let finalHeight = imageWidth / imgAspectRatio;
+                                
+                                // If height is too large, scale down
+                                if (finalHeight > imageHeight) {
+                                    finalHeight = imageHeight;
+                                    finalWidth = imageHeight * imgAspectRatio;
+                                }
+                                
+                                // Center the image
+                                const xPosition = (pageWidth - finalWidth) / 2;
+                                
+                                // Check if image fits on current page
+                                if (yPosition + finalHeight > pageHeight - margin - 50) {
+                                    addNewPage();
+                                    yPosition = margin;
+                                }
+                                
+                                pdf.addImage(img, 'JPEG', xPosition, yPosition, finalWidth, finalHeight);
+                                yPosition += finalHeight + 10;
+                                resolve(null);
+                            } catch (error) {
+                                console.error('Error adding image to PDF:', error);
+                                reject(error);
+                            }
+                        };
+                        img.onerror = reject;
+                        img.src = chapter.image_url;
+                    });
+                } catch (error) {
+                    console.error('Error loading image:', error);
+                    // Continue without image if there's an error
+                }
+            }
+
+            // Add chapter text
+            yPosition += 5;
+            pdf.setFontSize(12);
+            pdf.setFont('helvetica', 'normal');
+            addText(chapter.text, 12);
+        }
+
+        // Save PDF
+        const fileName = `storybook-${new Date().toISOString().split('T')[0]}.pdf`;
+        pdf.save(fileName);
+    }, [chapters, storyOutline]);
+
 
 
     /* =========================
@@ -283,6 +437,18 @@ const ChatInterface: React.FC = () => {
                                     transition={{ delay: 0.2 }}
                                     className={`ml-14 max-w-[80%] rounded-xl bg-white/60 backdrop-blur-sm border border-white/30 shadow-sm overflow-hidden`}
                                 >
+                                    {/* Download Button */}
+                                    {chapters.length > 0 && (
+                                        <div className="px-3 pt-3 pb-2 flex justify-end">
+                                            <button
+                                                onClick={downloadStory}
+                                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 bg-white/80 hover:bg-white rounded-lg border border-white/40 shadow-sm transition-all duration-200"
+                                            >
+                                                <Download className="w-3.5 h-3.5" />
+                                                Download Story
+                                            </button>
+                                        </div>
+                                    )}
                                     <div className="overflow-x-auto no-scrollbar">
                                         <div className="flex gap-3 p-3" style={{ width: 'max-content' }}>
                                             {msg.storyChapters
