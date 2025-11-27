@@ -116,6 +116,19 @@ Steps:
    - For other languages, use appropriate codes: "es" for Spanish, "fr" for French, "de" for German, etc.
    - IMPORTANT: Accurately detect the language based on the actual content, not default to "en"
 2. Be CREATIVE and GENEROUS: Even if the theme is vague or minimal, use your creativity to fill in the gaps and create a complete story. Only set needs_info=true if the input is completely empty or nonsensical (like random characters or gibberish).
+   
+   EXAMPLES of inputs that should trigger needs_info=true:
+   - Empty input: ""
+   - Random characters/gibberish: "1231231283798237982739817sjdakjsndkakc31"
+   - Nonsensical strings: "A Story about: 1231231283798237982739817sjdakjsndkakc31"
+   - Pure random text with no meaning: "asdfghjklqwertyuiop"
+   - Inputs that are clearly not story themes but random keyboard mashing or test strings
+   
+   EXAMPLES of inputs that should NOT trigger needs_info (should generate a story):
+   - "A story about a dragon" (even if minimal, create a story)
+   - "adventure" (single word is fine, be creative)
+   - "小猫" (Chinese, minimal but meaningful)
+   - "A story" (vague but meaningful, create a story)
 3. If the input is truly empty or nonsensical (needs_info=true), provide missing_fields and suggestions in the detected language. The suggestions should be written in a cute, child-friendly, warm and playful tone - like a friendly helper talking to a child. Use simple words, be encouraging, and make it feel welcoming.
 4. In almost all cases (needs_info=false), generate the complete story outline in the detected language. Use your imagination to create interesting characters, settings, and plot based on even minimal input.
 
