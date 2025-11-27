@@ -88,6 +88,11 @@ async def process_chat_request(session_id: str, state: StoryState):
             create_ws_message("agent_completed", session_id, {"agent": "chat", "status": "completed"}),
             session_id
         )
+        
+        await manager.send_to_session(
+            create_ws_message("pipeline_completed", session_id, {"status": "completed"}),
+            session_id
+        )
     except Exception as e:
         logger.error(f"Chat processing error: {e}")
         await manager.send_to_session(
@@ -107,24 +112,82 @@ async def process_story_generation(session_id: str, state: StoryState):
         graph = get_story_graph()
         config = {"configurable": {"thread_id": session_id}}
         final_state = state.copy()
+        writer_started_sent = False
+        writer_completed_count = 0
+        illustrator_started_sent = False
+        illustrator_completed_count = 0
         
         async for event in graph.astream(state, config):
             for node_name, node_output in event.items():
                 if isinstance(node_output, dict):
                     final_state.update(node_output)
                 
-                if node_name == "finalizer_text":
-                    finalized_text = node_output.get("finalized_text", {}) if isinstance(node_output, dict) else {}
+                if node_name == "planner":
                     await manager.send_to_session(
-                        create_ws_message("finalizer_text", session_id, {"chapters": finalized_text.get("chapters", [])}),
+                        create_ws_message("agent_completed", session_id, {"agent": "planner", "status": "completed"}),
                         session_id
                     )
+                    if not writer_started_sent:
+                        await manager.send_to_session(
+                            create_ws_message("agent_started", session_id, {"agent": "writer", "status": "running"}),
+                            session_id
+                        )
+                        writer_started_sent = True
+                
+                elif node_name.startswith("writer_"):
+                    chapter_id = int(node_name.split("_")[1])
+                    if node_output and isinstance(node_output, dict) and "completed_writers" in node_output:
+                        writer_completed_count += 1
+                        await manager.send_to_session(
+                            create_ws_message("agent_completed", session_id, {"agent": f"writer_{chapter_id}", "status": "completed", "chapter_id": chapter_id}),
+                            session_id
+                        )
+                        if writer_completed_count == 4:
+                            await manager.send_to_session(
+                                create_ws_message("agent_completed", session_id, {"agent": "writer", "status": "completed"}),
+                                session_id
+                            )
+                
+                elif node_name == "finalizer_text":
+                    finalized_text = node_output.get("finalized_text", {}) if isinstance(node_output, dict) else {}
+                    chapters = finalized_text.get("chapters", [])
+                    if chapters:
+                        await manager.send_to_session(
+                            create_ws_message("finalizer_text", session_id, {"chapters": chapters}),
+                            session_id
+                        )
+                        logger.info(f"finalizer_text event sent with {len(chapters)} chapters")
+                    # Start illustrators after text is finalized
+                    if not illustrator_started_sent:
+                        await manager.send_to_session(
+                            create_ws_message("agent_started", session_id, {"agent": "illustrator", "status": "running"}),
+                            session_id
+                        )
+                        illustrator_started_sent = True
+                
+                elif node_name.startswith("illustrator_"):
+                    chapter_id = int(node_name.split("_")[1])
+                    if node_output and isinstance(node_output, dict) and "completed_image_gens" in node_output:
+                        illustrator_completed_count += 1
+                        await manager.send_to_session(
+                            create_ws_message("agent_completed", session_id, {"agent": f"illustrator_{chapter_id}", "status": "completed", "chapter_id": chapter_id}),
+                            session_id
+                        )
+                        if illustrator_completed_count == 4:
+                            await manager.send_to_session(
+                                create_ws_message("agent_completed", session_id, {"agent": "illustrator", "status": "completed"}),
+                                session_id
+                            )
+                
                 elif node_name == "finalizer_image":
                     finalized_images = node_output.get("finalized_images", {}) if isinstance(node_output, dict) else {}
-                    await manager.send_to_session(
-                        create_ws_message("finalizer_image", session_id, {"chapters": finalized_images.get("chapters", [])}),
-                        session_id
-                    )
+                    chapters = finalized_images.get("chapters", [])
+                    if chapters:
+                        await manager.send_to_session(
+                            create_ws_message("finalizer_image", session_id, {"chapters": chapters}),
+                            session_id
+                        )
+                        logger.info(f"finalizer_image event sent with {len(chapters)} chapters")
                     await save_state_to_redis(session_id, final_state)
         
         await manager.send_to_session(
@@ -231,5 +294,3 @@ async def handle_websocket_message(session_id: str, theme: str):
             create_ws_message("error", session_id, {"error": str(e)}),
             session_id
         )
-
-
