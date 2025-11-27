@@ -123,6 +123,35 @@ async def process_story_generation(session_id: str, state: StoryState):
                     final_state.update(node_output)
                 
                 if node_name == "planner":
+                    # Check if planner needs more information
+                    # final_state has been updated with planner output, so check there
+                    needs_info = final_state.get("needs_info", False)
+                    
+                    if needs_info:
+                        # Send needs_info message to frontend
+                        suggestions = final_state.get("suggestions", "")
+                        # Ensure suggestions is a string
+                        if isinstance(suggestions, list):
+                            suggestions = "\n".join(suggestions) if suggestions else ""
+                        await manager.send_to_session(
+                            create_ws_message("needs_info", session_id, {
+                                "missing_fields": final_state.get("missing_fields", []),
+                                "suggestions": suggestions,
+                                "language": final_state.get("language", "en")
+                            }),
+                            session_id
+                        )
+                        await manager.send_to_session(
+                            create_ws_message("agent_completed", session_id, {"agent": "planner", "status": "completed"}),
+                            session_id
+                        )
+                        await manager.send_to_session(
+                            create_ws_message("pipeline_completed", session_id, {"status": "needs_info"}),
+                            session_id
+                        )
+                        await save_state_to_redis(session_id, final_state)
+                        return  # Stop processing, workflow will end
+                    
                     await manager.send_to_session(
                         create_ws_message("agent_completed", session_id, {"agent": "planner", "status": "completed"}),
                         session_id

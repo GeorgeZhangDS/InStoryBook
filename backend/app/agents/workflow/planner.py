@@ -14,11 +14,15 @@ logger = logging.getLogger(__name__)
 def _fill_defaults(data: Dict[str, Any]) -> Dict[str, Any]:
     """Fill missing fields with defaults"""
     if data.get("needs_info", False):
+        # Convert suggestions to string if it's a list
+        suggestions = data.get("suggestions", "")
+        if isinstance(suggestions, list):
+            suggestions = "\n".join(suggestions) if suggestions else ""
         return {
             "needs_info": True,
             "language": data.get("language", "en"),
             "missing_fields": data.get("missing_fields", []),
-            "suggestions": data.get("suggestions", [])
+            "suggestions": suggestions
         }
     
     outline = data.get("story_outline", {})
@@ -101,7 +105,7 @@ Return JSON format:
     }}
 }}"""
     else:
-        prompt = f"""Analyze the user's theme and determine if there's enough information to create a complete 4-chapter children's story.
+        prompt = f"""Analyze the user's theme and create a complete 4-chapter children's story.
 
 {context}User theme: {theme}
 
@@ -111,22 +115,24 @@ Steps:
    - If the input is in English, return "en"
    - For other languages, use appropriate codes: "es" for Spanish, "fr" for French, "de" for German, etc.
    - IMPORTANT: Accurately detect the language based on the actual content, not default to "en"
-2. Evaluate if the theme has enough information (clear characters, setting, plot direction). If not, set needs_info=true.
-3. If needs_info=true, provide missing_fields and suggestions in the detected language.
-4. If needs_info=false, generate the complete story outline in the detected language.
+2. Be CREATIVE and GENEROUS: Even if the theme is vague or minimal, use your creativity to fill in the gaps and create a complete story. Only set needs_info=true if the input is completely empty or nonsensical (like random characters or gibberish).
+3. If the input is truly empty or nonsensical (needs_info=true), provide missing_fields and suggestions in the detected language. The suggestions should be written in a cute, child-friendly, warm and playful tone - like a friendly helper talking to a child. Use simple words, be encouraging, and make it feel welcoming.
+4. In almost all cases (needs_info=false), generate the complete story outline in the detected language. Use your imagination to create interesting characters, settings, and plot based on even minimal input.
 
 IMPORTANT RULES:
 - The "language" field MUST match the language of the user's input
 - The "image_description" field for each chapter MUST be in English, regardless of the detected language (for image generation services)
+- DEFAULT to needs_info=false and CREATE a story. Only use needs_info=true for truly empty or nonsensical inputs.
+- Be creative and fill in missing details with imaginative, child-appropriate content
 
 Return JSON in one of these formats:
 
-If information is INCOMPLETE (use the detected language code):
+If information is TRULY EMPTY or NONSENSICAL (rare case, use the detected language code):
 {{
     "needs_info": true,
     "language": "en",
     "missing_fields": ["field1", "field2"],
-    "suggestions": ["suggestion1", "suggestion2"]
+    "suggestions": "Write suggestions in a cute, child-friendly, warm and playful tone. Use simple words, emojis if appropriate, and make it feel like a friendly helper talking to a child. Explain what information is needed in a gentle, encouraging way."
 }}
 
 If information is COMPLETE (use the detected language for language field, titles, and summaries):

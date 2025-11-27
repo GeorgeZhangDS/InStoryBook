@@ -20,7 +20,7 @@ class StoryState(TypedDict):
     story_outline: Optional[Dict[str, Any]]
     needs_info: bool
     missing_fields: Optional[List[str]]
-    suggestions: Optional[List[str]]
+    suggestions: Optional[str]
     
     # Writer Agents
     chapters: Annotated[List[Dict[str, Any]], operator.add]
