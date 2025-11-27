@@ -304,7 +304,8 @@ const ChatInterface: React.FC = () => {
             yPosition += 15;
 
             // Add image if available
-            if (chapter.image_url) {
+            const imageUrl = chapter.image_url;
+            if (imageUrl) {
                 try {
                     // Load image and add to PDF
                     const img = new Image();
@@ -342,7 +343,7 @@ const ChatInterface: React.FC = () => {
                             }
                         };
                         img.onerror = reject;
-                        img.src = chapter.image_url;
+                        img.src = imageUrl;
                     });
                 } catch (error) {
                     console.error('Error loading image:', error);

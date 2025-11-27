@@ -1,0 +1,78 @@
+version: '3.8'
+
+# Local deployment configuration
+# For production, use Railway (backend) + Vercel (frontend) + Upstash (Redis)
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: instorybook-redis-prod
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-changeme}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - instorybook-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: instorybook-backend-prod
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-changeme}@redis:6379/0
+      - AWS_ACCESS_KEY=${AWS_ACCESS_KEY}
+      - AWS_SECRET_KEY=${AWS_SECRET_KEY}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - NOVA_MODEL=${NOVA_MODEL:-us.amazon.nova-lite-v1:0}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
+      - RUNWARE_API_KEY=${RUNWARE_API_KEY}
+      - RUNWARE_IMAGE_MODEL=${RUNWARE_IMAGE_MODEL:-runware:101@1}
+      - RUNWARE_API_BASE_URL=${RUNWARE_API_BASE_URL:-https://api.runware.ai/v1}
+      - AI_PROVIDER=${AI_PROVIDER:-nova}
+      - AI_FALLBACK_PROVIDER=${AI_FALLBACK_PROVIDER:-openai}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:80,http://localhost:5173}
+      - DEBUG=${DEBUG:-false}
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - instorybook-network
+    volumes:
+      - ./logs:/app/logs
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=${VITE_API_URL:-http://localhost:8000/api/v1}
+        - VITE_WS_URL=${VITE_WS_URL:-ws://localhost:8000/api/v1/ws}
+    container_name: instorybook-frontend-prod
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - instorybook-network
+
+volumes:
+  redis-data:
+    driver: local
+
+networks:
+  instorybook-network:
+    driver: bridge
+
