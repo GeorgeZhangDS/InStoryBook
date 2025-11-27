@@ -39,9 +39,14 @@ class Settings(BaseSettings):
     OPENAI_MODEL: str = "gpt-4o-mini"
 
     # IMAGE GENERATION CONFIG
-    # OpenAI Image configs
-    OPENAI_IMAGE_MODEL: str = "gpt-image-1-mini"
+    # Runware Image configs
+    RUNWARE_API_KEY: Optional[str] = None
+    RUNWARE_IMAGE_MODEL: str = "runware:101@1" 
+    RUNWARE_API_BASE_URL: str = "https://api.runware.ai/v1"
 
+    # Fixed style for consistent image generation
+    # This style description will be appended to all image prompts
+    IMAGE_STYLE: str = "Children's storybook illustration style, no text, no words in the image."
     class Config:
         env_file = ".env"
         case_sensitive = True
